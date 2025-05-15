@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { Link } from '@tanstack/react-router'
 import AuthLayout from '../auth-layout'
 import { UserAuthForm } from './components/user-auth-form'
 
@@ -16,8 +17,11 @@ export default function SignIn() {
         <CardHeader>
           <CardTitle className='text-lg tracking-tight'>Login</CardTitle>
           <CardDescription>
-            Enter your email and password below to <br />
-            log into your account
+            Enter your credentials to log into your account<br />
+            Not yet registered?{' '}
+            <Link to='/sign-up' className='hover:text-primary underline underline-offset-4'>
+            Sign Up
+            </Link>
           </CardDescription>
         </CardHeader>
         <CardContent>
