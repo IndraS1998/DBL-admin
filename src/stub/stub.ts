@@ -59,6 +59,9 @@ async function sendHttpRequest(
   });
 }
 
+function delay(ms:number){
+    return new Promise(r =>(setTimeout(r,ms)))
+}
 // Send write to Raft cluster (with redirect/leader handling)
 async function sendWriteRequest(
   method: string,
@@ -97,7 +100,7 @@ async function sendWriteRequest(
   let finalResponse: WriteResponse;
   
   while (attempts<maxRetries) {
-    await new Promise(resolve => setTimeout(resolve, probingInterval));
+    await delay(probingInterval)
     const poll = await fetchFromRaftNode<LogStatusResponse>(`/log?index=${responseBody.index}`);
     if (poll.data.status !== 'pending') {
       finalResponse = { status: poll.status, body: poll.data };
