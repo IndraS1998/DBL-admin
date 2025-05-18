@@ -1,4 +1,5 @@
 import Cookies from 'js-cookie';
+import {v4 as uuidv4} from 'uuid'
 
 // Raft node port list
 const RAFT_NODE_PORTS: ReadonlyArray<string> = ["8001", "8002", "8003"];
@@ -12,15 +13,15 @@ type ClientAPIResponse<T = object> = {
 
 // Raft GET request client
 async function fetchFromRaftNode<T = object>(endpoint: string): Promise<ClientAPIResponse<T>> {
-    let roundRobinIndex : number = Number(Cookies.get('roundRobinIndex'))
+    let roundRobinIndex : number = Number(Cookies.get('roundRobinIndex')) || 0
     const targetPort = RAFT_NODE_PORTS[roundRobinIndex];
-    const response = await fetch(`http://localhost:${targetPort}/${endpoint}`);
+    const response = await fetch(`http://localhost:${targetPort}${endpoint}`);
 
     // Update round robin index
     roundRobinIndex = (roundRobinIndex + 1) % RAFT_NODE_PORTS.length;
     Cookies.set('roundRobinIndex',String(roundRobinIndex))
     const responseBody = await response.json();
-
+    
     return {
         status: response.status,
         data: responseBody as T,
@@ -69,12 +70,15 @@ async function sendWriteRequest(
   payload: object
 ): Promise<WriteResponse> {
   let leaderIndex = Number(Cookies.get('leader')) || getRandomNodeIndex();
-  const buildUrl = (i: number) => `http://localhost:${RAFT_NODE_PORTS[i]}/${endpoint}`;
-
-  let response = await sendHttpRequest(method, buildUrl(leaderIndex), payload);
+  const buildUrl = (i: number) => `http://localhost:${RAFT_NODE_PORTS[i]}/api${endpoint}`;
+  const id = uuidv4()
+  let response = await sendHttpRequest(method, buildUrl(leaderIndex), {...payload,op_index:id});
+  
   let responseBody = await response.json();
 
-  if (response.status === 307) {
+  // eslint-disable-next-line no-console
+  console.log(responseBody)
+  if (response.status === 307 || response.status === 308) {
     switch (responseBody.leader) {
       case '9001': leaderIndex = 0; break;
       case '9002': leaderIndex = 1; break;
@@ -101,7 +105,7 @@ async function sendWriteRequest(
   
   while (attempts<maxRetries) {
     await delay(probingInterval)
-    const poll = await fetchFromRaftNode<LogStatusResponse>(`/log?index=${responseBody.index}`);
+    const poll = await fetchFromRaftNode<LogStatusResponse>(`/log?index=${id}`);
     if (poll.data.status !== 'pending') {
       finalResponse = { status: poll.status, body: poll.data };
     }

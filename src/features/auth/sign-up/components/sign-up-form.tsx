@@ -14,13 +14,14 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/password-input'
+import { LoadingOverlay } from '@/components/layout/overlay'
+import { sendWriteRequest } from '@/stub/stub'
 
 type SignUpFormProps = HTMLAttributes<HTMLFormElement> 
 const formSchema = z
   .object({
     firstName: z.string().min(1,{message:'Enter valid first name'}),
     lastName: z.string().min(1,{message:'Enter valid last name'}),
-    contact: z.string().min(1,{message:'Invalid phone number'}),
     email: z
       .string()
       .min(1, { message: 'Please enter your email' })
@@ -41,7 +42,7 @@ const formSchema = z
   })
 
 export function SignUpForm({ className, ...props }: SignUpFormProps) {
-  const [isLoading, setIsLoading] = useState(false)
+  const [loading,setLoading] = useState(false)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -51,22 +52,28 @@ export function SignUpForm({ className, ...props }: SignUpFormProps) {
       confirmPassword: '',
       firstName : '',
       lastName: '',
-      contact:'',
     },
   })
 
-  function onSubmit(data: z.infer<typeof formSchema>) {
-    setIsLoading(true)
+  async function onSubmit(data: z.infer<typeof formSchema>) {
+    setLoading(true)
+    const res = await sendWriteRequest("POST","/admin/signup",{
+      first_name:data.firstName,
+      last_name:data.lastName,
+      email:data.email,
+      hashed_password:data.password
+    })
     // eslint-disable-next-line no-console
-    console.log(data)
+    console.log(res)
 
     setTimeout(() => {
-      setIsLoading(false)
-    }, 3000)
+      setLoading(false)
+    }, 20000)
   }
 
   return (
     <Form {...form}>
+      <LoadingOverlay open={loading}/>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
         className={cn('grid gap-3', className)}
@@ -93,19 +100,6 @@ export function SignUpForm({ className, ...props }: SignUpFormProps) {
               <FormLabel>Last Name</FormLabel>
               <FormControl>
                 <Input placeholder='Doe' {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name='contact'
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Contact</FormLabel>
-              <FormControl>
-                <Input placeholder='989789789' {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -150,7 +144,7 @@ export function SignUpForm({ className, ...props }: SignUpFormProps) {
             </FormItem>
           )}
         />
-        <Button className='mt-2' disabled={isLoading}>
+        <Button className='mt-2' >
           Sign Up
         </Button>
       </form>

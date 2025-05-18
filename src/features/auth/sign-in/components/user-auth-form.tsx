@@ -15,6 +15,8 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/password-input'
+import { LoadingOverlay } from '@/components/layout/overlay'
+import { fetchFromRaftNode } from '@/stub/stub'
 
 type UserAuthFormProps = HTMLAttributes<HTMLFormElement>
 
@@ -34,7 +36,7 @@ const formSchema = z.object({
 })
 
 export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
-  const [isLoading, setIsLoading] = useState(false)
+  const [loading, setLoading] = useState(false)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -44,18 +46,22 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
     },
   })
 
-  function onSubmit(data: z.infer<typeof formSchema>) {
-    setIsLoading(true)
+  async function onSubmit(data: z.infer<typeof formSchema>) {
+    setLoading(true)
     // eslint-disable-next-line no-console
     console.log(data)
+    const res = await fetchFromRaftNode('/ping')
 
+    // eslint-disable-next-line no-console
+    console.log(res)
     setTimeout(() => {
-      setIsLoading(false)
-    }, 3000)
+      setLoading(false)
+    }, 12000)
   }
 
   return (
     <Form {...form}>
+      <LoadingOverlay open={loading}/>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
         className={cn('grid gap-3', className)}
@@ -93,7 +99,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
             </FormItem>
           )}
         />
-        <Button className='mt-2' disabled={isLoading}>
+        <Button className='mt-2' disabled={loading}>
           Login
         </Button>
 

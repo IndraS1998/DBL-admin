@@ -12,7 +12,7 @@ import { SignUpForm } from './components/sign-up-form'
 
 
 export default function SignUp() {
-
+  
   return (
     <AuthLayout>
       <Card className='gap-4'>
