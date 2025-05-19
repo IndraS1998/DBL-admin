@@ -16,6 +16,10 @@ import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/password-input'
 import { LoadingOverlay } from '@/components/layout/overlay'
 import { sendWriteRequest } from '@/stub/stub'
+import { toast } from "sonner"
+import { useNavigate } from '@tanstack/react-router'
+
+
 
 type SignUpFormProps = HTMLAttributes<HTMLFormElement> 
 const formSchema = z
@@ -43,6 +47,8 @@ const formSchema = z
 
 export function SignUpForm({ className, ...props }: SignUpFormProps) {
   const [loading,setLoading] = useState(false)
+  const navigate = useNavigate();
+
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -63,12 +69,15 @@ export function SignUpForm({ className, ...props }: SignUpFormProps) {
       email:data.email,
       hashed_password:data.password
     })
-    // eslint-disable-next-line no-console
-    console.log(res)
-
-    setTimeout(() => {
-      setLoading(false)
-    }, 20000)
+    setLoading(false)
+    
+    if(res.status===200){
+      //notify then redirect
+      toast.success("Success. Wait till you are redirected to login page!.")
+      navigate({to:'/sign-in'})
+    }else{
+      toast.error("Some Error occured. Please try again later!")
+    }
   }
 
   return (

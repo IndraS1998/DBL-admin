@@ -42,8 +42,14 @@ interface WriteResponse {
 }
 
 //status of the fetch result of a log prob
+type LogEntryStatus = 'pending' | 'success' | 'failed'
+
+interface LogEntry {
+  Status: LogEntryStatus;
+}
+
 interface LogStatusResponse {
-  status: string;
+  Entry: LogEntry,
   index: number;
 }
 
@@ -71,15 +77,16 @@ async function sendWriteRequest(
 ): Promise<WriteResponse> {
   let leaderIndex = Number(Cookies.get('leader')) || getRandomNodeIndex();
   const buildUrl = (i: number) => `http://localhost:${RAFT_NODE_PORTS[i]}/api${endpoint}`;
-  const id = uuidv4()
-  let response = await sendHttpRequest(method, buildUrl(leaderIndex), {...payload,op_index:id});
+  const pollID = uuidv4()
+  
+  let response = await sendHttpRequest(method, buildUrl(leaderIndex), {...payload,poll_id:pollID});
   
   let responseBody = await response.json();
 
   // eslint-disable-next-line no-console
-  console.log(responseBody)
+  console.log(response)
   if (response.status === 307 || response.status === 308) {
-    switch (responseBody.leader) {
+    switch (responseBody.leaderAddress) {
       case '9001': leaderIndex = 0; break;
       case '9002': leaderIndex = 1; break;
       case '9003': leaderIndex = 2; break;
@@ -88,7 +95,7 @@ async function sendWriteRequest(
     }
 
     Cookies.set('leader', String(leaderIndex));
-    response = await sendHttpRequest(method, buildUrl(leaderIndex), payload);
+    response = await sendHttpRequest(method, buildUrl(leaderIndex), {...payload,poll_id:pollID});
     responseBody = await response.json();
   }
 
@@ -98,18 +105,26 @@ async function sendWriteRequest(
 
   // Polling for log commitment
   const maxRetries = 5
-  const probingInterval = 12000
+  const probingInterval = 8000
   let attempts = 0
 
   let finalResponse: WriteResponse;
   
   while (attempts<maxRetries) {
     await delay(probingInterval)
-    const poll = await fetchFromRaftNode<LogStatusResponse>(`/log?index=${id}`);
-    if (poll.data.status !== 'pending') {
-      finalResponse = { status: poll.status, body: poll.data };
+    const poll = await fetchFromRaftNode<LogStatusResponse>(`/log?poll_id=${pollID}`);
+    // eslint-disable-next-line no-console
+    console.log("poll status: ",poll.data.Entry.Status)
+    if (poll.data.Entry.Status !== 'pending') {
+      if(poll.data.Entry.Status === 'success'){
+        finalResponse = { status: 200, body: poll.data };
+      }else if(poll.data.Entry.Status === 'failed'){
+        finalResponse = { status: 300, body: poll.data };
+      }
+      attempts+=5
+    }else{
+      attempts++
     }
-    attempts++
   }
 
   return finalResponse!;
