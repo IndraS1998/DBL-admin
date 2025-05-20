@@ -47,7 +47,7 @@ const formSchema = z
 
 export function SignUpForm({ className, ...props }: SignUpFormProps) {
   const [loading,setLoading] = useState(false)
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
 
   const form = useForm<z.infer<typeof formSchema>>({

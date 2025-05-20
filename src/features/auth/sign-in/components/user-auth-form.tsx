@@ -17,6 +17,9 @@ import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/password-input'
 import { LoadingOverlay } from '@/components/layout/overlay'
 import { fetchFromRaftNode } from '@/stub/stub'
+import { toast } from "sonner"
+import Cookies from 'js-cookie'
+import { useNavigate } from '@tanstack/react-router'
 
 type UserAuthFormProps = HTMLAttributes<HTMLFormElement>
 
@@ -37,6 +40,7 @@ const formSchema = z.object({
 
 export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
   const [loading, setLoading] = useState(false)
+  const navigate = useNavigate()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -48,15 +52,31 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
 
   async function onSubmit(data: z.infer<typeof formSchema>) {
     setLoading(true)
-    // eslint-disable-next-line no-console
-    console.log(data)
-    const res = await fetchFromRaftNode('/ping')
 
-    // eslint-disable-next-line no-console
-    console.log(res)
-    setTimeout(() => {
-      setLoading(false)
-    }, 12000)
+    interface AdminPayload{
+      FirstName: string;
+      LastName: string;
+      Email: string;
+      AdminID: number;
+      Active : boolean;
+    }
+
+    const res = await fetchFromRaftNode<{admin: AdminPayload}>(`/api/admin/signin?email=${data.email}&password=${data.password}`)
+
+    if(res.status === 406){
+      toast.error("Invalid signin credentials!")
+    }else if(res.status === 202){
+      Cookies.set("AdminID",String(res.data.admin.AdminID))
+      Cookies.set("first_name",res.data.admin.FirstName)
+      Cookies.set("last_name",res.data.admin.LastName)
+      Cookies.set("mail",res.data.admin.Email)
+      Cookies.set("status",res.data.admin.Active.toString())
+      //navigate
+      navigate({to:'/dashboard'})
+    }else{
+      toast.error("System is unavailable for now! try again later")  
+    }
+    setLoading(false)
   }
 
   return (
