@@ -1,82 +1,78 @@
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import {useState,useEffect} from 'react'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { fetchFromRaftNode } from '@/stub/stub'
+import {
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+
+type transaction = 'transfer' | 'withdraw' | 'deposit'
+
+type WalletOperation = {
+  ID: number;
+  Type: transaction;
+  Amount:number;
+  Timestamp: string;
+  Status: string;
+  Wallet1: number;
+  Wallet2: number;
+}
 
 export function RecentSales() {
+  const [operations,setOperations] = useState<WalletOperation[]>([])
+ 
+  async function fetchData(){
+    const payload = await fetchFromRaftNode<{recent_transactions : WalletOperation[]}>('/api/admin/stats/transactions/recent')
+  
+    if(payload.status == 200){
+      setOperations(payload.data.recent_transactions)
+    }
+  }
+
+  useEffect(()=>{
+    fetchData().then(()=>{}).catch(()=>{})
+  },[])
   return (
-    <div className='space-y-8'>
-      <div className='flex items-center gap-4'>
-        <Avatar className='h-9 w-9'>
-          <AvatarImage src='/avatars/01.png' alt='Avatar' />
-          <AvatarFallback>OM</AvatarFallback>
-        </Avatar>
-        <div className='flex flex-1 flex-wrap items-center justify-between'>
-          <div className='space-y-1'>
-            <p className='text-sm leading-none font-medium'>Olivia Martin</p>
-            <p className='text-muted-foreground text-sm'>
-              olivia.martin@email.com
-            </p>
-          </div>
-          <div className='font-medium'>+$1,999.00</div>
+    <>
+      <CardHeader>
+        <CardTitle>Recent Transactions</CardTitle>
+        <CardDescription>
+          A total of {operations.length} transactions so far this month.
+        </CardDescription>
+     </CardHeader>
+        <CardContent>
+          <div className='space-y-8'>
+          {operations.map((operation) =>(
+            <OperationHighlight op={operation} key={operation.ID}/>
+          ))}
         </div>
-      </div>
-      <div className='flex items-center gap-4'>
-        <Avatar className='flex h-9 w-9 items-center justify-center space-y-0 border'>
-          <AvatarImage src='/avatars/02.png' alt='Avatar' />
-          <AvatarFallback>JL</AvatarFallback>
-        </Avatar>
-        <div className='flex flex-1 flex-wrap items-center justify-between'>
-          <div className='space-y-1'>
-            <p className='text-sm leading-none font-medium'>Jackson Lee</p>
-            <p className='text-muted-foreground text-sm'>
-              jackson.lee@email.com
-            </p>
-          </div>
-          <div className='font-medium'>+$39.00</div>
-        </div>
-      </div>
-      <div className='flex items-center gap-4'>
-        <Avatar className='h-9 w-9'>
-          <AvatarImage src='/avatars/03.png' alt='Avatar' />
-          <AvatarFallback>IN</AvatarFallback>
-        </Avatar>
-        <div className='flex flex-1 flex-wrap items-center justify-between'>
-          <div className='space-y-1'>
-            <p className='text-sm leading-none font-medium'>Isabella Nguyen</p>
-            <p className='text-muted-foreground text-sm'>
-              isabella.nguyen@email.com
-            </p>
-          </div>
-          <div className='font-medium'>+$299.00</div>
-        </div>
-      </div>
+      </CardContent>
+    </>
+  )
+}
 
-      <div className='flex items-center gap-4'>
-        <Avatar className='h-9 w-9'>
-          <AvatarImage src='/avatars/04.png' alt='Avatar' />
-          <AvatarFallback>WK</AvatarFallback>
-        </Avatar>
-        <div className='flex flex-1 flex-wrap items-center justify-between'>
-          <div className='space-y-1'>
-            <p className='text-sm leading-none font-medium'>William Kim</p>
-            <p className='text-muted-foreground text-sm'>will@email.com</p>
-          </div>
-          <div className='font-medium'>+$99.00</div>
-        </div>
-      </div>
+interface OperationHighlightProps {
+  op: WalletOperation;
+}
 
-      <div className='flex items-center gap-4'>
-        <Avatar className='h-9 w-9'>
-          <AvatarImage src='/avatars/05.png' alt='Avatar' />
-          <AvatarFallback>SD</AvatarFallback>
-        </Avatar>
-        <div className='flex flex-1 flex-wrap items-center justify-between'>
-          <div className='space-y-1'>
-            <p className='text-sm leading-none font-medium'>Sofia Davis</p>
-            <p className='text-muted-foreground text-sm'>
-              sofia.davis@email.com
-            </p>
-          </div>
-          <div className='font-medium'>+$39.00</div>
+function OperationHighlight({op} : OperationHighlightProps){
+  return (
+    <div className='flex items-center gap-4'>
+      <Avatar className='h-9 w-9'>
+       {op.Type === 'deposit' && <AvatarFallback>D</AvatarFallback>}
+       {op.Type === 'transfer' && <AvatarFallback>T</AvatarFallback>}
+       {op.Type === 'withdraw' && <AvatarFallback>W</AvatarFallback>}
+      </Avatar>
+      <div className='flex flex-1 flex-wrap items-center justify-between'>
+        <div className='space-y-1'>
+          <p className='text-sm leading-none font-medium capitalize'>{op.Type}</p>
+          <p className='text-muted-foreground text-sm'>
+            Wallet ID: {op.Wallet1} {op.Type === 'transfer' && ` -> Wallet ID: ${op.Wallet2}`}
+          </p>
         </div>
+        <div className='font-medium'>XAF {op.Amount.toLocaleString()}</div>
       </div>
     </div>
   )
