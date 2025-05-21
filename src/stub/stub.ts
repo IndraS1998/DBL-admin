@@ -83,8 +83,6 @@ async function sendWriteRequest(
   
   let responseBody = await response.json();
 
-  // eslint-disable-next-line no-console
-  console.log(response)
   if (response.status === 307 || response.status === 308) {
     switch (responseBody.leaderAddress) {
       case '9001': leaderIndex = 0; break;
